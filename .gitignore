@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+
+# Data and models (large files)
+/datasets/*.h5
+/datasets/*.hdf5
+/.DS_Store
+
+# Model checkpoints and heavy outputs
+/outputs/models/
+/outputs/logs/
+
+# Raw images and large image assets (keep small illustrative images in README only)
+/images/
+
+# Logs and temporary files
+*.log
+*.tmp
+# Avoid ignoring CSV benchmarks which are stored under outputs/metrics/
+
+# Jupyter
+.ipynb_checkpoints/
