@@ -118,7 +118,11 @@ def plot_benchmark_comparison(results_df: pd.DataFrame, output_path: Path | None
     if results_df.empty or "test_accuracy" not in results_df.columns:
         return
 
-    df = results_df.copy()
+    df = (
+        results_df.groupby(["task", "model"], as_index=False)["test_accuracy"]
+        .mean()
+        .sort_values(["task", "model"])
+    )
     df["run"] = df["task"] + " / " + df["model"]
     fig, ax = plt.subplots(figsize=(11, 6))
     ax.bar(df["run"], df["test_accuracy"])

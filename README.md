@@ -1,27 +1,15 @@
-# Convolutional Neural Networks for Image Classification with TensorFlow/Keras
-
-This project implements and benchmarks convolutional neural networks for two image-classification tasks using TensorFlow/Keras. The primary objective is improving SIGNS multiclass recognition while keeping the smile baseline as a stable reference model.
+# TensorFlow/Keras CNN Image Classification Benchmark
 
 ## Project Overview
-
-The project focuses on reproducible CNN training, evaluation, and benchmark reporting. The training pipeline loads local HDF5 datasets, applies task-specific preprocessing, trains multiple model variants, evaluates test performance, and saves metrics and figures under `outputs/`.
+This repository runs reproducible CNN experiments for two local HDF5 image-classification tasks. It includes baseline models, improved custom CNNs, augmentation variants, optional transfer learning, and a benchmark pipeline that saves metrics and figures under `outputs/`.
 
 ## Tasks
-
-1. **Smile classification**
-   - Binary classification: smile vs non-smile.
-   - Dataset files expected under `datasets/`:
-     - `train_happy.h5`
-     - `test_happy.h5`
-
-2. **Sign-language digit classification**
-   - Multiclass classification: hand-sign digits from 0 to 5.
-   - Dataset files expected under `datasets/`:
-     - `train_signs.h5`
-     - `test_signs.h5`
+1. Smile classification (`train_happy.h5`, `test_happy.h5`)
+   - Binary target: smile vs non-smile
+2. Sign-language digit classification (`train_signs.h5`, `test_signs.h5`)
+   - Multiclass target: digits `0-5`
 
 ## Repository Structure
-
 ```text
 .
 ├── README.md
@@ -35,13 +23,13 @@ The project focuses on reproducible CNN training, evaluation, and benchmark repo
 │   └── cnn_image_classification.ipynb
 ├── src/
 │   ├── __init__.py
-│   ├── config.py
 │   ├── data_loader.py
 │   ├── models.py
 │   ├── train.py
 │   ├── evaluate.py
 │   ├── benchmark.py
-│   └── visualization.py
+│   ├── visualization.py
+│   └── config.py
 └── outputs/
     ├── figures/
     │   └── .gitkeep
@@ -52,9 +40,7 @@ The project focuses on reproducible CNN training, evaluation, and benchmark repo
 ```
 
 ## Dataset Setup
-
-Dataset files are not included in the repository. Place the required HDF5 files manually under `datasets/`:
-
+Place local HDF5 files in `datasets/`:
 ```text
 datasets/
 ├── train_happy.h5
@@ -62,177 +48,132 @@ datasets/
 ├── train_signs.h5
 └── test_signs.h5
 ```
-
-The project uses relative paths only. The data loader raises a clear error if any required file is missing.
+If files are missing, loaders and scripts stop with a clear error listing the expected paths.
 
 ## Installation
-
-Create and activate a virtual environment:
-
 ```bash
 python -m venv .venv
-source .venv/bin/activate      # macOS/Linux
-# .venv\Scripts\activate       # Windows
-```
-
-Install dependencies:
-
-```bash
+source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
 ## Usage
-
-Run the notebook:
-
+Run notebook:
 ```bash
 jupyter notebook notebooks/cnn_image_classification.ipynb
 ```
 
-Run the full benchmark (example):
-
+Run full benchmark:
 ```bash
-python -m src.benchmark --task signs --epochs 100
-python -m src.benchmark --task signs --epochs 100 --seeds 1 2 3
+python -m src.benchmark
 ```
 
-Run a single task and model (example):
-
+Run benchmark for one task:
 ```bash
-python -m src.train --task signs --model tuned_cnn --epochs 100
-python -m src.train --task signs --model augmented_cnn --epochs 100
+python -m src.benchmark --task smile
+python -m src.benchmark --task signs
 ```
 
-Optional arguments:
-
+Optional transfer baseline (SIGNS only):
 ```bash
-python -m src.benchmark --task smile --epochs 20
+python -m src.benchmark --task signs --include-transfer
+```
+
+Run one model/task:
+```bash
+python -m src.train --task smile --model baseline
+python -m src.train --task smile --model improved_cnn
+python -m src.train --task smile --model augmented_cnn
+python -m src.train --task signs --model baseline
+python -m src.train --task signs --model improved_cnn
+python -m src.train --task signs --model augmented_cnn
+```
+
+Useful options:
+```bash
+python -m src.benchmark --epochs 40 --seeds 42 7 99
 python -m src.benchmark --save-models
-python -m src.train --task signs --model baseline --epochs 50 --batch-size 64
+python -m src.train --task signs --model improved_cnn --epochs 80 --batch-size 64
 ```
 
 ## Model Architectures
+### Smile
+- `build_smile_baseline()`
+  - `ZeroPadding2D -> Conv2D -> BatchNormalization -> ReLU -> MaxPooling2D -> Flatten -> Dense(sigmoid)`
+- `build_smile_improved_cnn()`
+  - `Conv-BN-ReLU -> MaxPool -> Conv-BN-ReLU -> MaxPool -> Conv-BN-ReLU -> GlobalAveragePooling -> Dropout -> Dense(sigmoid)`
+- `build_smile_augmented_cnn()`
+  - Uses in-model augmentation (`RandomFlip`, `RandomRotation`, `RandomZoom`, `RandomTranslation`, `RandomContrast`) before the improved backbone.
 
-### Smile Classification
-
-The benchmark compares:
-
-1. **Baseline CNN**
-   ```text
-   ZeroPadding2D -> Conv2D -> BatchNormalization -> ReLU -> MaxPooling2D -> Flatten -> Dense(sigmoid)
-   ```
-
-2. **Improved CNN**
-   ```text
-   Conv-BN-ReLU -> MaxPool -> Conv-BN-ReLU -> MaxPool -> Conv-BN-ReLU -> GlobalAveragePooling -> Dropout -> Dense(sigmoid)
-   ```
-
-3. **Augmented CNN**
-   - Uses the improved CNN backbone.
-   - Adds moderate in-model augmentation with horizontal flipping, rotation, zoom, translation, and contrast adjustment.
-
-### Sign-Language Digit Classification
-
-The benchmark compares:
-
-1. **Baseline CNN**
-   ```text
-   Input -> Conv2D -> ReLU -> MaxPooling2D -> Conv2D -> ReLU -> MaxPooling2D -> Flatten -> Dense(softmax)
-   ```
-
-2. **Improved CNN**
-   ```text
-   Conv-BN-ReLU blocks with 32, 64, and 128 filters -> MaxPooling -> Dropout -> GlobalAveragePooling -> Dense(softmax)
-   ```
-
-3. **Augmented CNN**
-   - Uses the improved CNN backbone.
-   - Adds conservative in-model augmentation with small rotation, zoom, translation, and contrast adjustment.
-   - Avoids aggressive transformations that could change the hand-sign semantics.
+### SIGNS
+- `build_signs_baseline()`
+  - `Input -> Conv2D -> ReLU -> MaxPooling2D -> Conv2D -> ReLU -> MaxPooling2D -> Flatten -> Dense(softmax)`
+- `build_signs_improved_cnn()`
+  - Stacked conv blocks (32/64/128 filters) with BN/ReLU, pooling, dropout, global average pooling, and dense softmax head.
+- `build_signs_augmented_cnn()`
+  - Conservative in-model augmentation (small rotation/zoom/translation/contrast) before improved backbone.
+- Optional `build_signs_mobilenetv2_transfer()`
+  - Frozen ImageNet MobileNetV2 feature extractor with lightweight classification head.
 
 ## Benchmark Design
+`python -m src.benchmark` compares:
+- Smile: `baseline`, `improved_cnn`, `augmented_cnn`
+- SIGNS: `baseline`, `improved_cnn`, `augmented_cnn` (plus optional transfer model)
 
-The benchmark script trains and evaluates the following models:
+For each run it stores:
+- `task`, `model`, `parameters`
+- `epochs_requested`, `epochs_trained`
+- `best_validation_accuracy`, `best_validation_loss`
+- `test_accuracy`, `test_loss`
+- `training_time_seconds`
+- `roc_auc` for smile when available
 
-| Task | Models |
-|---|---|
-| Smile classification | baseline, augmented CNN (reference baseline kept unchanged) |
-| Sign-language digit classification | baseline, current augmented CNN, tuned CNN, tuned augmented CNN, optional MobileNetV2 |
-
-For each run, the pipeline records:
-
-- task name
-- model name
-- trainable/non-trainable parameter count
-- requested epochs
-- actual epochs trained
-- best validation accuracy
-- best validation loss
-- test accuracy
-- test loss
-- ROC-AUC for binary smile classification when computable
-- training time
-
-The training pipeline uses:
-
-- fixed random seeds
-- Adam/AdamW optimizer (AdamW preferred for SIGNS)
-- EarlyStopping with restored best weights
-- ReduceLROnPlateau
-- CSVLogger
-- optional ModelCheckpoint
+Training callbacks:
+- `EarlyStopping(restore_best_weights=True)`
+- `ReduceLROnPlateau`
+- `CSVLogger` to `outputs/metrics/`
+- optional `ModelCheckpoint` to `outputs/models/`
 
 ## Results
+Latest local benchmark snapshot (seed `42`, generated from `outputs/metrics/benchmark_results.csv`):
 
-Run the benchmark to generate per-run and aggregated results. The benchmark writes both per-run metrics and aggregate summaries (mean/std across seeds) to `outputs/metrics/`.
+### Smile task
+| Model | Epochs trained | Best val accuracy | Test accuracy | Test loss | ROC-AUC | Training time (s) |
+|---|---:|---:|---:|---:|---:|---:|
+| `baseline` | 30 | 0.9667 | 0.9600 | 0.0819 | 0.9960 | 18.40 |
+| `augmented_cnn` | 30 | 0.9000 | 0.8133 | 0.3667 | 0.9284 | 35.47 |
+| `improved_cnn` | 12 | 0.5222 | 0.5400 | 0.7451 | 0.6124 | 12.66 |
 
-Per-run and aggregate files (CSV + JSON):
+### SIGNS task
+| Model | Epochs trained | Best val accuracy | Test accuracy | Test loss | Training time (s) |
+|---|---:|---:|---:|---:|---:|
+| `augmented_cnn` | 80 | 0.9630 | 0.9333 | 0.1483 | 254.71 |
+| `baseline` | 80 | 0.7593 | 0.7750 | 0.8070 | 15.54 |
+| `improved_cnn` | 16 | 0.2284 | 0.2167 | 3.5316 | 52.28 |
 
-```text
-outputs/metrics/benchmark_results.csv
-outputs/metrics/benchmark_results.json
-outputs/metrics/benchmark_summary.csv
-outputs/metrics/benchmark_summary.json
-```
+### Quick discussion
+- In this run, `augmented_cnn` is strongest on SIGNS (`0.9333` test accuracy), improving over the SIGNS baseline (`0.7750`).
+- For smile classification, the baseline model performs best (`0.9600` test accuracy, `0.9960` ROC-AUC).
+- `improved_cnn` underperforms in both tasks in this seed-42 run, indicating the current optimization/regularization settings are not yet stable for this architecture.
+- These numbers are from one seed (`42`); use `--seeds` for multi-seed comparison before drawing final conclusions.
 
-Per-model detailed metrics (classification reports, confusion matrices) are saved under `outputs/metrics/` for each run.
+### Figures produced by the run
+- Benchmark comparison: `outputs/figures/benchmark_test_accuracy.png`
+- Smile curves/confusion matrices: `outputs/figures/smile_*_training_curves.png`, `outputs/figures/smile_*_confusion_matrix.png`
+- SIGNS curves/confusion matrices: `outputs/figures/signs_*_training_curves.png`, `outputs/figures/signs_*_confusion_matrix.png`
 
 ## Output Artifacts
-
-Generated artifacts are written locally under `outputs/`:
-
-```text
-outputs/
-├── figures/
-│   ├── *_training_curves.png
-│   ├── *_confusion_matrix.png
-│   └── benchmark_test_accuracy.png
-├── metrics/
-│   ├── *_training_log.csv
-│   ├── *_detailed_metrics.json
-│   ├── benchmark_results.csv
-│   └── benchmark_results.json
-└── models/
-    └── *.keras        # only when --save-models is used
-```
-
-These outputs are excluded from version control by `.gitignore`.
+- Training curves: `outputs/figures/*_training_curves.png`
+- Confusion matrices: `outputs/figures/*_confusion_matrix.png`
+- Benchmark comparison chart: `outputs/figures/benchmark_test_accuracy.png`
+- Detailed per-run metrics: `outputs/metrics/*_detailed_metrics.json`
+- Per-run logs: `outputs/metrics/*_training_log.csv`
+- Optional model checkpoints: `outputs/models/*.keras`
 
 ## Reproducibility Notes
-
-The project fixes random seeds for Python, NumPy, and TensorFlow. Small numerical differences may still occur across TensorFlow versions, operating systems, CPU/GPU execution, and low-level backend kernels.
+- Global seeds are set for Python `random`, NumPy, and TensorFlow in `src/config.py`.
+- TensorFlow op determinism is enabled when available.
+- Minor metric variation can still occur across hardware, CUDA/cuDNN, and TensorFlow versions.
 
 ## License / Data Note
-
-Dataset files are not redistributed in this repository. Users should ensure they have appropriate rights to any local datasets placed under `datasets/`.
-
-Ignored files
-
-The repository intentionally ignores large or private artifacts so the remote remains lightweight. The following are excluded via `.gitignore`:
-
-- dataset HDF5 files under `datasets/`
-- raw image assets under `images/`
-- model checkpoints under `outputs/models/`
-- training logs and temporary files
-
-Benchmark results (figures, tables, and JSON/CSV summaries) are written under `outputs/figures/` and `outputs/metrics/` and are safe to share once you decide which artifacts to publish.
+Datasets are not distributed in this repository. Ensure you have the right to use local dataset files placed under `datasets/`.

@@ -1,24 +1,44 @@
 # Python
 __pycache__/
 *.py[cod]
+*.so
+*.dylib
 .venv/
+.env
+.pytest_cache/
+.mypy_cache/
 
-# Data and models (large files)
-/datasets/*.h5
-/datasets/*.hdf5
-/.DS_Store
+# OS/editor
+.DS_Store
+.ipynb_checkpoints/
 
-# Model checkpoints and heavy outputs
-/outputs/models/
-/outputs/logs/
+# Datasets (keep placeholders only)
+datasets/*
+!datasets/.gitkeep
 
-# Raw images and large image assets (keep small illustrative images in README only)
-/images/
+# Local image workspace (keep placeholder only)
+images/*
+!images/.gitkeep
 
-# Logs and temporary files
+# Generated outputs (keep folder placeholders only)
+outputs/*
+!outputs/figures/
+!outputs/metrics/
+!outputs/models/
+outputs/figures/*
+!outputs/figures/.gitkeep
+outputs/metrics/*
+!outputs/metrics/.gitkeep
+outputs/models/*
+!outputs/models/.gitkeep
+
+# Heavy artifact formats
+*.h5
+*.hdf5
+*.keras
+*.pkl
+*.joblib
+
+# Logs/temp
 *.log
 *.tmp
-# Avoid ignoring CSV benchmarks which are stored under outputs/metrics/
-
-# Jupyter
-.ipynb_checkpoints/

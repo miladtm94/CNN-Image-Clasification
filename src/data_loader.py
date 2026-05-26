@@ -33,7 +33,14 @@ class MissingDatasetError(FileNotFoundError):
 
 
 def _missing_file_message(missing_paths: list[Path]) -> str:
-    missing = "\n".join(f"  - {path.relative_to(config.PROJECT_ROOT)}" for path in missing_paths)
+    formatted_paths: list[str] = []
+    for path in missing_paths:
+        try:
+            display = path.resolve().relative_to(config.PROJECT_ROOT.resolve())
+        except Exception:
+            display = path
+        formatted_paths.append(f"  - {display}")
+    missing = "\n".join(formatted_paths)
     expected = "\n".join(f"  - datasets/{name}" for name in config.REQUIRED_DATASET_FILES)
     return (
         "Required dataset file(s) were not found.\n\n"
